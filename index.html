@@ -3,338 +3,216 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Temp Mail & SMS — Demo</title>
+<title>Temp Mail — Simple Viewer</title>
 <style>
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:16px;max-width:900px}
-  header{display:flex;align-items:center;gap:12px}
-  h1{margin:0;font-size:1.4rem}
-  .card{border:1px solid #ddd;padding:12px;border-radius:8px;margin-top:12px}
-  label{display:block;margin-top:8px}
-  button{margin-top:8px;padding:8px 12px;border-radius:6px}
-  pre{background:#f7f7f7;padding:8px;border-radius:6px;overflow:auto}
-  .emails,.smsmsgs{max-height:320px;overflow:auto;margin-top:8px;border-radius:6px;padding:8px;background:#fafafa;border:1px solid #eee}
-  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:20px;max-width:800px;color:#222;background:#fafafa}
+  h1{font-size:1.6rem;margin-bottom:0}
+  header{margin-bottom:1rem}
+  .card{background:#fff;border:1px solid #ddd;padding:16px;border-radius:10px;margin-top:12px;box-shadow:0 2px 4px rgba(0,0,0,0.05)}
+  button,select,input{font:inherit;padding:8px 12px;border-radius:6px;border:1px solid #ccc}
+  button{cursor:pointer;background:#0069ed;color:#fff;border:none}
+  button:hover{background:#0053ba}
+  .emails{max-height:320px;overflow:auto;margin-top:8px;border-radius:6px;padding:8px;background:#f9f9f9;border:1px solid #eee}
+  .mono{font-family:ui-monospace,Menlo,Monaco,"Roboto Mono",monospace}
   small.note{color:#666}
+  pre{background:#f7f7f7;padding:8px;border-radius:6px;overflow:auto}
 </style>
 </head>
 <body>
 <header>
-  <h1>Temp Mail & Temp Phone Demo</h1>
-  <small class="note">Static site — email works via public APIs. SMS needs a proxy (instructions below).</small>
+  <h1>Temp Mail Viewer</h1>
+  <small class="note">Uses public APIs (mail.tm & 1secmail). Works on GitHub Pages.</small>
 </header>
 
 <section class="card">
   <h2>Temporary Email</h2>
-  <div>
-    <label>Choose provider:
-      <select id="emailProvider">
-        <option value="mailtm">mail.tm (recommended)</option>
-        <option value="1secmail">1secmail</option>
-      </select>
-    </label>
-
-    <label>
-      Local part (leave blank to auto-randomize):
-      <input id="localpart" placeholder="example: tester123" />
-    </label>
-
-    <button id="createEmail">Create temp email</button>
-    <div id="emailInfo" style="margin-top:10px"></div>
-
-    <div style="display:flex;gap:6px;margin-top:8px">
-      <button id="fetchEmails">Fetch Inbox</button>
-      <button id="autoPoll">Start auto-poll (5s)</button>
-      <button id="stopPoll" disabled>Stop auto-poll</button>
-      <button id="deleteMail" style="margin-left:auto">Delete account (mail.tm only)</button>
-    </div>
-
-    <div class="emails" id="emailsList" aria-live="polite"></div>
-  </div>
-</section>
-
-<section class="card">
-  <h2>Temporary Phone (receive SMS)</h2>
-  <p>
-    GitHub Pages is static — to receive SMS with real phone numbers you need a backend/proxy that holds a provider API key (Twilio, SMS-Activate, etc.). Below you can:
-  </p>
-  <ol>
-    <li>Deploy the tiny serverless function (example provided below) or any server that exposes an endpoint like <code>/get-numbers</code> and <code>/get-sms?numberId=...</code>.</li>
-    <li>Paste that proxy base URL into the field and use the UI to pick a number and view messages.</li>
-  </ol>
-
-  <label>SMS proxy base URL (leave blank to see the demo placeholder):
-    <input id="smsProxy" placeholder="https://my-proxy.example.com" style="width:100%" />
+  <label>Choose provider:
+    <select id="emailProvider">
+      <option value="mailtm">mail.tm (recommended)</option>
+      <option value="1secmail">1secmail</option>
+    </select>
   </label>
+  <br>
+  <label>Local part (optional):
+    <input id="localpart" placeholder="example: tester123" />
+  </label>
+  <br>
+  <button id="createEmail">Create temp email</button>
+  <div id="emailInfo" style="margin-top:10px"></div>
 
-  <div style="display:flex;gap:8px;margin-top:8px">
-    <button id="listNumbers">List Numbers (via proxy)</button>
-    <select id="numbersList" style="min-width:200px"></select>
-    <button id="pollSms">Fetch SMS</button>
+  <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+    <button id="fetchEmails">Fetch Inbox</button>
+    <button id="autoPoll">Start auto-refresh (5s)</button>
+    <button id="stopPoll" disabled>Stop</button>
+    <button id="deleteMail" style="margin-left:auto;background:#d9534f">Delete account</button>
   </div>
 
-  <div class="smsmsgs" id="smsList"></div>
-
-  <details style="margin-top:8px">
-    <summary>How to add SMS support quickly (Netlify function / serverless)</summary>
-    <pre class="mono" id="fncode" style="white-space:pre-wrap"></pre>
-  </details>
+  <div class="emails" id="emailsList" aria-live="polite"></div>
 </section>
 
 <section class="card">
-  <h2>Notes & Limitations</h2>
+  <h2>Notes</h2>
   <ul>
-    <li>mail.tm and 1secmail are public temporary email providers — sometimes domains change or CORS may block direct browser calls. If that happens, you can deploy a tiny proxy (serverless) and point this app at it.</li>
-    <li>Receiving SMS reliably requires a phone-number provider (Twilio, SMS-Activate, SMSRent, etc.) and normally a server to hold secrets. Do not put API keys in client-side code.</li>
-    <li>Use these tools ethically — they're intended for testing and privacy, not for evading bans, fraud, or illegal activity. Provider terms apply.</li>
+    <li><strong>mail.tm</strong> creates a real temporary mailbox with login & password.</li>
+    <li><strong>1secmail</strong> offers instant inbox without registration.</li>
+    <li>If messages don’t load, the provider API may block browser CORS temporarily — try switching provider.</li>
+    <li>Use for testing only — don’t store personal data.</li>
   </ul>
 </section>
 
 <script>
-/* ---------- Utilities ---------- */
-const byId = id => document.getElementById(id);
-const emailsList = byId('emailsList');
-const emailInfo = byId('emailInfo');
-let pollHandle = null;
-let currentAccount = null; // {provider, address, id, token?}
-const sleep = ms => new Promise(r=>setTimeout(r, ms));
+const byId=id=>document.getElementById(id);
+const emailsList=byId('emailsList');
+const emailInfo=byId('emailInfo');
+let pollHandle=null;
+let currentAccount=null;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
-/* ---------- MAIL.TM implementation ---------- */
-/* mail.tm docs: create account, auth, list messages, get message */ 
-// Docs: https://docs.mail.tm/ and https://api.mail.tm/docs
-async function mailtmCreate(localPart) {
-  // choose a domain from /domains
-  const domainsRes = await fetch('https://api.mail.tm/domains');
-  if (!domainsRes.ok) throw new Error('mail.tm domain fetch failed');
-  const domainsData = await domainsRes.json();
-  const domain = domainsData['hydra:member']?.[0]?.domain || 'mail.tm';
-  const username = localPart || ('user'+Math.floor(Math.random()*1e6));
-  const address = `${username}@${domain}`;
-  const password = 'P@ss' + Math.random().toString(36).slice(2,10);
-  // create account
-  const createRes = await fetch('https://api.mail.tm/accounts', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({address, password})
+async function mailtmCreate(localPart){
+  const domainsRes=await fetch('https://api.mail.tm/domains');
+  if(!domainsRes.ok)throw new Error('mail.tm domain fetch failed');
+  const domainsData=await domainsRes.json();
+  const domain=domainsData['hydra:member']?.[0]?.domain||'mail.tm';
+  const username=localPart||('user'+Math.floor(Math.random()*1e6));
+  const address=`${username}@${domain}`;
+  const password='P@ss'+Math.random().toString(36).slice(2,10);
+  const createRes=await fetch('https://api.mail.tm/accounts',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({address,password})
   });
-  if (!createRes.ok) {
-    const txt = await createRes.text();
-    throw new Error('mail.tm create failed: '+txt);
-  }
-  const account = await createRes.json();
-  // authenticate to get token
-  const tokenRes = await fetch('https://api.mail.tm/token', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({address, password})
+  if(!createRes.ok)throw new Error(await createRes.text());
+  const account=await createRes.json();
+  const tokenRes=await fetch('https://api.mail.tm/token',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({address,password})
   });
-  if (!tokenRes.ok) throw new Error('mail.tm auth failed');
-  const token = await tokenRes.json();
-  return {address, password, id: account.id, token: token.token};
+  if(!tokenRes.ok)throw new Error('mail.tm auth failed');
+  const token=await tokenRes.json();
+  return {address,password,id:account.id,token:token.token};
 }
 
-async function mailtmFetchMessages(token) {
-  const res = await fetch('https://api.mail.tm/messages', {
-    headers: { Authorization: 'Bearer ' + token }
-  });
-  if (!res.ok) throw new Error('mail.tm fetch messages failed');
-  const data = await res.json();
-  return data['hydra:member'] || [];
+async function mailtmFetchMessages(token){
+  const res=await fetch('https://api.mail.tm/messages',{headers:{Authorization:'Bearer '+token}});
+  if(!res.ok)throw new Error('mail.tm fetch messages failed');
+  const data=await res.json();
+  return data['hydra:member']||[];
+}
+async function mailtmGetMessage(token,id){
+  const res=await fetch(`https://api.mail.tm/messages/${id}`,{headers:{Authorization:'Bearer '+token}});
+  return res.ok?res.json():null;
+}
+async function mailtmDeleteAccount(id,token){
+  return fetch(`https://api.mail.tm/accounts/${id}`,{method:'DELETE',headers:{Authorization:'Bearer '+token}});
 }
 
-async function mailtmGetMessage(token, id) {
-  const res = await fetch(`https://api.mail.tm/messages/${id}`, {
-    headers: { Authorization: 'Bearer ' + token }
-  });
-  return res.ok ? res.json() : null;
-}
-
-async function mailtmDeleteAccount(id, token) {
-  return fetch(`https://api.mail.tm/accounts/${id}`, {
-    method:'DELETE',
-    headers: { Authorization: 'Bearer ' + token }
-  });
-}
-
-/* ---------- 1secmail implementation (fallback) ---------- */
-/* 1secmail API endpoints: https://www.1secmail.com/api/v1/?action=genRandomMailbox ... */
-async function oneSecCreate(localPart) {
-  // 1secmail provides random addresses by endpoint or you can use domains
-  if (localPart) {
-    // pick domain list from known set
-    const domains = ['1secmail.com','1secmail.org','1secmail.net','wwjmp.com','esiix.com'];
-    const domain = domains[Math.floor(Math.random()*domains.length)];
-    return {address: `${localPart}@${domain}`};
-  } else {
-    const res = await fetch('https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1');
-    const arr = await res.json();
-    return {address: arr[0]};
+async function oneSecCreate(localPart){
+  if(localPart){
+    const domains=['1secmail.com','1secmail.org','1secmail.net','wwjmp.com','esiix.com'];
+    const domain=domains[Math.floor(Math.random()*domains.length)];
+    return {address:`${localPart}@${domain}`};
+  }else{
+    const res=await fetch('https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1');
+    const arr=await res.json();
+    return {address:arr[0]};
   }
 }
-
-async function oneSecListMessages(address) {
-  const [login, domain] = address.split('@');
-  const res = await fetch(`https://www.1secmail.com/api/v1/?action=getMessages&login=${encodeURIComponent(login)}&domain=${encodeURIComponent(domain)}`);
-  return res.ok ? res.json() : [];
+async function oneSecListMessages(address){
+  const [login,domain]=address.split('@');
+  const res=await fetch(`https://www.1secmail.com/api/v1/?action=getMessages&login=${encodeURIComponent(login)}&domain=${encodeURIComponent(domain)}`);
+  return res.ok?res.json():[];
 }
-async function oneSecGetMessage(address, id) {
-  const [login, domain] = address.split('@');
-  const res = await fetch(`https://www.1secmail.com/api/v1/?action=readMessage&login=${encodeURIComponent(login)}&domain=${encodeURIComponent(domain)}&id=${id}`);
-  return res.ok ? res.json() : null;
+async function oneSecGetMessage(address,id){
+  const [login,domain]=address.split('@');
+  const res=await fetch(`https://www.1secmail.com/api/v1/?action=readMessage&login=${encodeURIComponent(login)}&domain=${encodeURIComponent(domain)}&id=${id}`);
+  return res.ok?res.json():null;
 }
 
-/* ---------- UI logic ---------- */
-byId('createEmail').addEventListener('click', async () => {
-  const provider = byId('emailProvider').value;
-  const local = byId('localpart').value.trim() || null;
-  try {
-    emailInfo.textContent = 'Creating...';
-    if (provider === 'mailtm') {
-      const acc = await mailtmCreate(local);
-      currentAccount = {provider:'mailtm', address:acc.address, id:acc.id, token:acc.token};
-      emailInfo.innerHTML = `<div><strong>${acc.address}</strong> (mail.tm)</div><div class="small">Password: <span class="mono">${acc.password}</span></div>`;
-    } else {
-      const acc = await oneSecCreate(local);
-      currentAccount = {provider:'1secmail', address:acc.address};
-      emailInfo.innerHTML = `<div><strong>${acc.address}</strong> (1secmail)</div>`;
+byId('createEmail').addEventListener('click',async()=>{
+  const provider=byId('emailProvider').value;
+  const local=byId('localpart').value.trim()||null;
+  try{
+    emailInfo.textContent='Creating...';
+    if(provider==='mailtm'){
+      const acc=await mailtmCreate(local);
+      currentAccount={provider:'mailtm',address:acc.address,id:acc.id,token:acc.token};
+      emailInfo.innerHTML=`<div><strong>${acc.address}</strong></div><div class="small">Password: <span class="mono">${acc.password}</span></div>`;
+    }else{
+      const acc=await oneSecCreate(local);
+      currentAccount={provider:'1secmail',address:acc.address};
+      emailInfo.innerHTML=`<div><strong>${acc.address}</strong></div>`;
     }
-    emailsList.innerHTML = '';
-  } catch (e) {
-    emailInfo.textContent = 'Error: ' + e.message;
-    console.error(e);
+    emailsList.innerHTML='';
+  }catch(e){
+    emailInfo.textContent='Error: '+e.message;
   }
 });
 
-byId('fetchEmails').addEventListener('click', fetchAndRenderEmails);
-byId('autoPoll').addEventListener('click', () => {
-  if (!currentAccount) return alert('Create an email first');
-  byId('autoPoll').disabled = true;
-  byId('stopPoll').disabled = false;
-  pollHandle = setInterval(fetchAndRenderEmails, 5000);
+byId('fetchEmails').addEventListener('click',fetchAndRenderEmails);
+byId('autoPoll').addEventListener('click',()=>{
+  if(!currentAccount)return alert('Create an email first');
+  byId('autoPoll').disabled=true;
+  byId('stopPoll').disabled=false;
+  pollHandle=setInterval(fetchAndRenderEmails,5000);
 });
-byId('stopPoll').addEventListener('click', () => {
-  clearInterval(pollHandle); pollHandle = null;
-  byId('autoPoll').disabled = false;
-  byId('stopPoll').disabled = true;
+byId('stopPoll').addEventListener('click',()=>{
+  clearInterval(pollHandle);pollHandle=null;
+  byId('autoPoll').disabled=false;
+  byId('stopPoll').disabled=true;
 });
-byId('deleteMail').addEventListener('click', async () => {
-  if (!currentAccount || currentAccount.provider !== 'mailtm') return alert('Only mail.tm accounts can be deleted via API from this demo.');
-  try {
-    await mailtmDeleteAccount(currentAccount.id, currentAccount.token);
-    alert('Account deleted at mail.tm (if allowed).');
-    currentAccount = null;
-    emailInfo.innerHTML = '';
-    emailsList.innerHTML = '';
-  } catch(e){ alert('Delete failed: '+e.message); }
+byId('deleteMail').addEventListener('click',async()=>{
+  if(!currentAccount||currentAccount.provider!=='mailtm')return alert('Only mail.tm accounts can be deleted.');
+  try{
+    await mailtmDeleteAccount(currentAccount.id,currentAccount.token);
+    alert('Account deleted.');
+    currentAccount=null;
+    emailInfo.innerHTML='';
+    emailsList.innerHTML='';
+  }catch(e){alert('Delete failed: '+e.message);}
 });
 
-async function fetchAndRenderEmails() {
-  if (!currentAccount) return alert('Create an email first');
-  emailsList.textContent = 'Fetching...';
-  try {
-    let messages = [];
-    if (currentAccount.provider === 'mailtm') {
-      messages = await mailtmFetchMessages(currentAccount.token);
-      // get full messages
-      const full = await Promise.all(messages.map(m=>mailtmGetMessage(currentAccount.token, m.id)));
-      renderEmailList(full.map(m => ({id: m.id, from:m.from?.address || m.from, subject:m.subject, intro:m.intro || m.text.slice(0,180), html:m.html, text:m.text})));
-    } else {
-      messages = await oneSecListMessages(currentAccount.address);
-      const full = await Promise.all(messages.map(m=>oneSecGetMessage(currentAccount.address, m.id)));
-      renderEmailList(full.map(m => ({id: m.id, from: m.from, subject:m.subject, intro:m.text.slice(0,180), html:m.html, text:m.text})));
+async function fetchAndRenderEmails(){
+  if(!currentAccount)return alert('Create an email first');
+  emailsList.textContent='Fetching...';
+  try{
+    let messages=[];
+    if(currentAccount.provider==='mailtm'){
+      messages=await mailtmFetchMessages(currentAccount.token);
+      const full=await Promise.all(messages.map(m=>mailtmGetMessage(currentAccount.token,m.id)));
+      renderEmailList(full.map(m=>({id:m.id,from:m.from?.address||m.from,subject:m.subject,intro:m.intro||m.text?.slice(0,180),html:m.html,text:m.text})));
+    }else{
+      messages=await oneSecListMessages(currentAccount.address);
+      const full=await Promise.all(messages.map(m=>oneSecGetMessage(currentAccount.address,m.id)));
+      renderEmailList(full.map(m=>({id:m.id,from:m.from,subject:m.subject,intro:m.text?.slice(0,180),html:m.html,text:m.text})));
     }
-  } catch(e) {
-    emailsList.textContent = 'Error fetching: ' + e.message;
-    console.error(e);
+  }catch(e){
+    emailsList.textContent='Error fetching: '+e.message;
   }
 }
 
-function renderEmailList(items) {
-  if (!items || items.length === 0) { emailsList.innerHTML = '<div><em>No messages yet.</em></div>'; return; }
-  emailsList.innerHTML = '';
-  for (const it of items) {
-    const wrap = document.createElement('div');
-    wrap.style.borderBottom = '1px solid #eee'; wrap.style.padding = '8px 0';
-    const subj = document.createElement('div'); subj.innerHTML = `<strong>${escapeHtml(it.subject||'(no subject)')}</strong>`;
-    const from = document.createElement('div'); from.style.fontSize='0.9em'; from.style.color='#555'; from.textContent = 'From: ' + (it.from||'');
-    const intro = document.createElement('div'); intro.textContent = it.intro||'';
-    const show = document.createElement('button'); show.textContent='Open'; show.style.marginTop='6px';
-    show.addEventListener('click', () => {
-      const dialog = window.open('', '_blank', 'width=800,height=600');
+function renderEmailList(items){
+  if(!items||items.length===0){emailsList.innerHTML='<div><em>No messages yet.</em></div>';return;}
+  emailsList.innerHTML='';
+  for(const it of items){
+    const wrap=document.createElement('div');
+    wrap.style.borderBottom='1px solid #eee';wrap.style.padding='8px 0';
+    wrap.innerHTML=`<strong>${escapeHtml(it.subject||'(no subject)')}</strong>
+      <div style="font-size:0.9em;color:#555">From: ${escapeHtml(it.from||'')}</div>
+      <div>${escapeHtml(it.intro||'')}</div>`;
+    const btn=document.createElement('button');
+    btn.textContent='Open';
+    btn.style.marginTop='6px';
+    btn.addEventListener('click',()=>{
+      const dialog=window.open('','_blank','width=800,height=600');
       dialog.document.write(`<h2>${escapeHtml(it.subject||'')}</h2><div>From: ${escapeHtml(it.from||'')}</div><hr>`);
-      if (it.html) dialog.document.write(it.html);
-      else dialog.document.write('<pre>' + escapeHtml(it.text||'') + '</pre>');
+      if(it.html)dialog.document.write(it.html);
+      else dialog.document.write('<pre>'+escapeHtml(it.text||'')+'</pre>');
     });
-    wrap.appendChild(subj); wrap.appendChild(from); wrap.appendChild(intro); wrap.appendChild(show);
+    wrap.appendChild(btn);
     emailsList.appendChild(wrap);
   }
 }
 
-/* ---------- SMS section (requires server/proxy) ---------- */
-byId('listNumbers').addEventListener('click', async () => {
-  const base = byId('smsProxy').value.trim();
-  if (!base) return alert('Enter your SMS proxy base URL (see details below).');
-  try {
-    const res = await fetch(base + '/get-numbers');
-    const data = await res.json();
-    const sel = byId('numbersList');
-    sel.innerHTML = '';
-    data.forEach(n => {
-      const opt = document.createElement('option');
-      opt.value = n.id || n.number;
-      opt.textContent = `${n.number} — ${n.country || n.provider || ''}`;
-      sel.appendChild(opt);
-    });
-  } catch (e) { alert('Failed to fetch numbers: ' + e.message); console.error(e); }
-});
-
-byId('pollSms').addEventListener('click', async () => {
-  const base = byId('smsProxy').value.trim();
-  if (!base) return alert('Enter your SMS proxy base URL (see details below).');
-  const sel = byId('numbersList');
-  if (!sel.value) return alert('Choose a number from the list first.');
-  try {
-    const res = await fetch(base + '/get-sms?numberId=' + encodeURIComponent(sel.value));
-    const data = await res.json();
-    const node = byId('smsList');
-    if (!Array.isArray(data) || data.length===0) { node.innerHTML = '<em>No messages yet.</em>'; return; }
-    node.innerHTML = '';
-    data.forEach(m => {
-      const d = document.createElement('div');
-      d.style.borderBottom='1px solid #eee'; d.style.padding='6px 0';
-      d.innerHTML = `<div><strong>From:</strong> ${escapeHtml(m.from||'')}</div>
-                     <div><strong>Body:</strong><pre>${escapeHtml(m.body||m.text||'')}</pre></div>
-                     <div style="font-size:0.8em;color:#666">${escapeHtml(m.received_at||m.date||'')}</div>`;
-      node.appendChild(d);
-    });
-  } catch(e){ alert('Failed to fetch SMS: '+e.message); console.error(e); }
-});
-
-/* ---------- Netlify/Azure Function example for SMS proxy ---------- */
-const fnExample = `// Example Netlify function (serverless) - proxy to SMS provider
-// Deploy as Netlify Function or any server with environment variables holding secrets.
-// This example uses Twilio (but you can adapt to SMS-Activate or other providers).
-// Environment: set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN
-
-const twilio = require('twilio');
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-
-exports.handler = async function(event) {
-  const path = event.path;
-  if (path.endsWith('/get-numbers')) {
-    // return list of purchased numbers
-    const outgoing = await client.incomingPhoneNumbers.list({limit:50});
-    return { statusCode:200, body: JSON.stringify(outgoing.map(n=>({id:n.sid, number:n.phoneNumber}))) };
-  }
-  if (path.endsWith('/get-sms')) {
-    const numId = event.queryStringParameters.numberId;
-    // Twilio stores messages — fetch messages where to=the number
-    const msgs = await client.messages.list({to: numId, limit:50});
-    return { statusCode:200, body: JSON.stringify(msgs.map(m=>({from:m.from, body:m.body, date:m.dateCreated}))) };
-  }
-  return {statusCode:404, body:'not found'};
-};`;
-byId('fncode').textContent = fnExample;
-
-/* ---------- helpers ---------- */
-function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function escapeHtml(s){return s?s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c])):'';}
 </script>
+</body>
+</html>
